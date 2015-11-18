@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by Manol on 11/10/2015.
@@ -18,6 +19,8 @@ public final class Question2 {
 
     private Lock addPriceLock = new ReentrantLock();
 
+    private Lock addNewPricingLock = new ReentrantLock();
+
     public Question2() {
         priceHolder = new ConcurrentHashMap<>();
     }
@@ -27,14 +30,20 @@ public final class Question2 {
      */
     public void putPrice(String e, BigDecimal p) {
         if (priceHolder.get(e) != null) {
-            priceHolder.get(e).add(p);
-        } else {
-            LinkedList initialPricingList = new LinkedList();
             try {
                 addPriceLock.lock();
-                initialPricingList.add(p);
+                priceHolder.get(e).add(p);
             } finally {
                 addPriceLock.unlock();
+            }
+        } else {
+            LinkedList initialPricingList;
+            try {
+                addNewPricingLock.lock();
+                initialPricingList = new LinkedList();
+                initialPricingList.add(p);
+            } finally {
+                addNewPricingLock.unlock();
             }
             priceHolder.put(e, initialPricingList);
         }
